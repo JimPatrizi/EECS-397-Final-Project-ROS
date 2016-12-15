@@ -1,0 +1,6 @@
+<launch>
+
+<include file="$(find coordinator)/launch/coord_vision_manip.launch/>
+
+<node name="from_torso_to_camera_link_static_tf" pkg="tf" type="static_transform_publisher" args="-0.2707 -0.0293 -0.7461 2.5389 1.45 0.3869 torso camera_link 50" />
+</launch>
