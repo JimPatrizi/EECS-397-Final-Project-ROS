@@ -20,13 +20,10 @@ int32 OBJECT_CODE_NOT_RECOGNIZED=2
 int32 OBJECT_FINDER_BUSY=3
 int32 OBJECT_FINDER_CANCELLED=4
 
-#for now let's just use 0 for rectangular block
-#1 for square block 
-int32 object_type
-
 #return the identified pose here:
 int32 found_object_code
 geometry_msgs/PoseStamped object_pose
+int32 object_id
 ---
 #feedback: optional; 
 #int32 OBJECT_FINDER_BUSY=3 

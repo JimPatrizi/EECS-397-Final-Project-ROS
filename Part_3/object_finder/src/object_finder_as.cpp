@@ -9,7 +9,6 @@
 #include <xform_utils/xform_utils.h>
 
 Eigen::Affine3f g_affine_kinect_wrt_base;
-int g_num_points = 0;
 
 class ObjectFinder {
 private:
@@ -82,7 +81,7 @@ bool ObjectFinder::find_toy_block(float surface_height, geometry_msgs::PoseStamp
     //should do more sanity testing on found_object status
     //hard-coded search bounds based on a block of width 0.035
     found_object = pclUtils_.find_plane_fit(0.4, 1, -0.5, 0.5, surface_height + 0.025, surface_height + 0.045, 0.001,
-            plane_normal, plane_dist, major_axis, centroid, g_num_points);
+            plane_normal, plane_dist, major_axis, centroid);
     //should have put a return value on find_plane_fit;
     //
     if (plane_normal(2) < 0) plane_normal(2) *= -1.0; //in world frame, normal must point UP
@@ -92,7 +91,7 @@ bool ObjectFinder::find_toy_block(float surface_height, geometry_msgs::PoseStamp
     R.col(2) = plane_normal;
     R.col(1) = plane_normal.cross(major_axis);
     Eigen::Quaternionf quat(R);
-    object_pose.header.frame_id = "base";
+    object_pose.header.frame_id = "base_link";
     object_pose.pose.position.x = centroid(0);
     object_pose.pose.position.y = centroid(1);
     //the TOY_BLOCK model has its origin in the middle of the block, not the top surface
@@ -152,14 +151,12 @@ void ObjectFinder::executeCB(const actionlib::SimpleActionServer<object_finder::
         ros::Time tstart = ros::Time::now();
         double table_ht;
         //hard-coded search range: x= [0,1], y= [-0.5,0.5], z=[0.6,1.2] in steps of 0.005
-        table_ht = pclUtils_.find_table_height(0.5, 1, -0.5, 0.5, -0.3, 0.3, 0.005);
+        table_ht = pclUtils_.find_table_height(0.0, 1, -0.5, 0.5, 0.6, 1.2, 0.005);
         ROS_INFO("table ht: %f", table_ht);
         ros::Time t3 = ros::Time::now();
         surface_height_ = table_ht; //remember this value for potential future use
         found_surface_height_ = true;
     }
-    
-
 
 
     switch (object_id) {
@@ -181,18 +178,11 @@ void ObjectFinder::executeCB(const actionlib::SimpleActionServer<object_finder::
             found_object = find_toy_block(surface_height, object_pose); //special case for toy block
             if (found_object) {
                 ROS_INFO("found toy block!");
-                ROS_WARN("g_num_points = %u", g_num_points);
-                if (g_num_points > 275){
-						result_.object_type=0;//case for the rectangualr block
-					} else {
-						result_.object_type=1;//case for the square block
-					}
-                    // PUT LOGIC HERE TO DETERMINE IF BLOCK IS SQUARE OR RECTANGLE
                 result_.found_object_code = object_finder::objectFinderResult::OBJECT_FOUND;
                 result_.object_pose = object_pose;
                 object_finder_as_.setSucceeded(result_);
             } else {
-                ROS_WARN("g_num_points = %u", g_num_points);
+                ROS_WARN("could not find requested object");
                 result_.found_object_code = object_finder::objectFinderResult::OBJECT_NOT_FOUND;
                 object_finder_as_.setAborted(result_);
             }
@@ -203,7 +193,7 @@ void ObjectFinder::executeCB(const actionlib::SimpleActionServer<object_finder::
             ROS_INFO("object finder: finding/returning table height");
                 result_.found_object_code = object_finder::objectFinderResult::OBJECT_FOUND;
                 //rtn result in an object_pose: surface height w/rt world
-                object_pose.header.frame_id = "base";
+                object_pose.header.frame_id = "base_link";
                 object_pose.pose.position.x = 0.5; //arbitrarily place origin 0.5m in front of robot
                 object_pose.pose.position.y = 0.0; //centered, left/right
                 object_pose.pose.position.z = surface_height_; //computed value w/rt base_link
@@ -212,7 +202,6 @@ void ObjectFinder::executeCB(const actionlib::SimpleActionServer<object_finder::
                 object_pose.pose.orientation.z = 0;
                 object_pose.pose.orientation.w = 1;
                 result_.object_pose = object_pose;
-                           
                 ROS_INFO("returning height %f",surface_height_);
                 result_.found_object_code = object_finder::objectFinderResult::OBJECT_FOUND;
                 object_finder_as_.setSucceeded(result_);             
@@ -242,7 +231,7 @@ int main(int argc, char** argv) {
             //The direction of the transform returned will be from the target_frame to the source_frame. 
             //Which if applied to data, will transform data in the source_frame into the target_frame. 
             //See tf/CoordinateFrameConventions#Transform_Direction
-            tfListener.lookupTransform("base", "camera_rgb_optical_frame", ros::Time(0), stf_kinect_wrt_base);
+            tfListener.lookupTransform("base_link", "kinect_pc_frame", ros::Time(0), stf_kinect_wrt_base);
         } catch (tf::TransformException &exception) {
             ROS_WARN("%s; retrying...", exception.what());
             tferr = true;

@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>pcd_images</name>
+  <name>simple_camera_model</name>
   <version>0.0.0</version>
-  <description>The pcd_images package</description>
+  <description>The simple_camera_model package</description>
   
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
